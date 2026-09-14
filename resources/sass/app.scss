@@ -1,0 +1,14 @@
+// Punto de entrada de estilos de la aplicación.
+//
+// 1) Nuestras variables (sobreescriben los defaults de UIkit).
+// 2) El propio UIkit, importado vía sus archivos "-theme" para que
+//    respete esas variables (así se documenta en la guía oficial de
+//    theming de UIkit: getuikit.com/docs/less-plus-sass#theme).
+// 3) Nuestros estilos, para poder afinar cualquier detalle por encima.
+@import 'variables';
+
+@import '../../node_modules/uikit/src/scss/variables-theme.scss';
+@import '../../node_modules/uikit/src/scss/mixins-theme.scss';
+@import '../../node_modules/uikit/src/scss/uikit-theme.scss';
+
+@import 'custom';

@@ -1,0 +1,114 @@
+// -----------------------------------------------------------------------------
+// Estilos propios de DocuManagement, encima del tema de UIkit.
+// -----------------------------------------------------------------------------
+
+body {
+    background-color: #f4f6f9;
+}
+
+// Layout de autenticación (login / registro): tarjeta centrada sobre fondo de marca.
+.auth-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, $global-primary-background 0%, darken($global-primary-background, 20%) 100%);
+    padding: 20px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+}
+
+// Zona de arrastrar y soltar para la subida de documentos.
+.document-dropzone {
+    border: 2px dashed darken(#e5e5e5, 15%);
+    border-radius: $global-border-radius;
+    background: #fff;
+    padding: 40px 20px;
+    text-align: center;
+    transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+    cursor: pointer;
+
+    &:hover,
+    &.is-dragover {
+        border-color: $global-primary-background;
+        background-color: rgba($global-primary-background, 0.04);
+    }
+
+    &.has-file {
+        border-style: solid;
+        border-color: $global-success-background;
+    }
+}
+
+// Insignia de nivel de riesgo (bajo / medio / alto) del análisis anti-fraude.
+.risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: $badge-border-radius;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+
+    &--bajo {
+        background: rgba($global-success-background, 0.12);
+        color: darken($global-success-background, 5%);
+    }
+
+    &--medio {
+        background: rgba($global-warning-background, 0.14);
+        color: darken($global-warning-background, 8%);
+    }
+
+    &--alto {
+        background: rgba($global-danger-background, 0.12);
+        color: darken($global-danger-background, 5%);
+    }
+}
+
+.risk-reasons {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+// Tarjeta de resumen numérico en el panel principal.
+.stat-card {
+    border-radius: $global-border-radius;
+    background: #fff;
+    padding: 20px;
+    height: 100%;
+
+    .stat-card__value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .stat-card__label {
+        color: #888;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+}
+
+.app-logo {
+    font-weight: 700;
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+// En la barra de navegación (fondo claro) la marca usa el color primario;
+// en la pantalla de login (fondo oscuro) hereda el blanco del contenedor .uk-light.
+.uk-navbar-item .app-logo {
+    color: $global-primary-background;
+}
