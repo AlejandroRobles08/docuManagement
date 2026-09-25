@@ -76,9 +76,26 @@
         </div>
     </div>
 
-    @if ($duplicatePerson)
-        <div class="uk-alert-warning uk-margin-top" uk-alert>
-            <h3 class="uk-margin-remove-bottom"><span uk-icon="icon: warning"></span> Esta persona ya está registrada</h3>
+    @if ($riskLevel->blocksUpload())
+        <div class="uk-alert-danger uk-margin-top" uk-alert>
+            <h3 class="uk-margin-remove-bottom"><span uk-icon="icon: ban"></span> Documento rechazado por riesgo alto</h3>
+            <p>
+                Este documento no se puede guardar debido a su nivel de riesgo alto. Cancela y sube un
+                documento distinto para continuar.
+            </p>
+
+            <form method="POST" action="{{ route('documents.cancel', $token) }}">
+                @csrf
+                <x-secondary-button type="submit">Cancelar y subir otro documento</x-secondary-button>
+            </form>
+        </div>
+    @elseif ($duplicatePerson)
+        <div class="uk-alert-{{ $duplicate['matched_by'] === 'selected' ? 'primary' : 'warning' }} uk-margin-top" uk-alert>
+            @if ($duplicate['matched_by'] === 'selected')
+                <h3 class="uk-margin-remove-bottom"><span uk-icon="icon: user"></span> Persona seleccionada</h3>
+            @else
+                <h3 class="uk-margin-remove-bottom"><span uk-icon="icon: warning"></span> Esta persona ya está registrada</h3>
+            @endif
             <p>{{ $duplicate['message'] }}</p>
             <p>
                 Persona existente: <strong>{{ $duplicatePerson->full_name }}</strong>
@@ -88,13 +105,6 @@
             <form id="attach-form" method="POST" action="{{ route('documents.confirm', $token) }}" class="uk-margin-top">
                 @csrf
                 <input type="hidden" name="attach_to_person_id" value="{{ $duplicatePerson->id }}">
-
-                @if ($riskLevel->requiresManualConfirmation())
-                    <label class="uk-display-block uk-margin-small-bottom">
-                        <input type="checkbox" class="uk-checkbox" name="confirm_high_risk" value="1" required>
-                        Revisé el documento y confirmo que deseo continuar a pesar del riesgo alto.
-                    </label>
-                @endif
             </form>
 
             <div class="uk-flex" style="gap: .5rem;">
@@ -115,13 +125,6 @@
 
             <form id="save-form" method="POST" action="{{ route('documents.confirm', $token) }}">
                 @csrf
-
-                @if ($riskLevel->requiresManualConfirmation())
-                    <label class="uk-display-block uk-margin-small-bottom">
-                        <input type="checkbox" class="uk-checkbox" name="confirm_high_risk" value="1" required>
-                        Revisé el documento y confirmo que deseo continuar a pesar del riesgo alto.
-                    </label>
-                @endif
             </form>
 
             <div class="uk-flex" style="gap: .5rem;">

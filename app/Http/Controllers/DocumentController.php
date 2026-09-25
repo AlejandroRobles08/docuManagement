@@ -8,9 +8,12 @@ use App\Http\Requests\StoreDocumentRequest;
 use App\Models\Document;
 use App\Models\Person;
 use App\Services\Forgery\ForgeryAnalyzer;
+use App\Services\PersonMatch;
 use App\Services\PersonMatcher;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -75,9 +78,54 @@ class DocumentController extends Controller
 
     public function create(): View
     {
+        $selectedPerson = old('person_id') ? Person::find(old('person_id')) : null;
+        $selectedPerson?->loadCount('documents')->load(['documents:id,person_id,risk_level']);
+
         return view('documents.create', [
             'documentTypes' => DocumentType::options(),
+            'documentTypeHints' => collect(DocumentType::cases())
+                ->mapWithKeys(fn (DocumentType $case) => [$case->value => $case->identifierHint()])
+                ->all(),
+            'selectedPerson' => $selectedPerson,
+            'selectedPersonRiskBadges' => $selectedPerson ? $this->riskBadges($selectedPerson) : collect(),
         ]);
+    }
+
+    /**
+     * Búsqueda en vivo de personas ya registradas, para el buscador del
+     * formulario de subida (evita tener que volver a escribir los datos de
+     * alguien que ya existe en la base de datos). Incluye cuántos documentos
+     * tiene ya registrados y con qué nivel de riesgo, para que el staff lo
+     * vea antes de decidir si le agrega un documento nuevo.
+     */
+    public function searchPersons(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('q', ''));
+
+        if ($search === '') {
+            return response()->json([]);
+        }
+
+        $persons = Person::query()
+            ->select(['id', 'full_name', 'curp', 'birth_date'])
+            ->where(function ($query) use ($search) {
+                $query->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('curp', 'like', "%{$search}%");
+            })
+            ->withCount('documents')
+            ->with(['documents:id,person_id,risk_level'])
+            ->orderBy('full_name')
+            ->limit(10)
+            ->get();
+
+        return response()->json($persons->map(fn (Person $person): array => [
+            'id' => $person->id,
+            'full_name' => $person->full_name,
+            'curp' => $person->curp,
+            'birth_date' => $person->birth_date?->format('Y-m-d'),
+            'documents_count' => $person->documents_count,
+            'risk_counts' => $this->riskCounts($person),
+        ]));
     }
 
     /**
@@ -90,8 +138,31 @@ class DocumentController extends Controller
         $data = $request->validated();
         $file = $request->file('document');
 
-        $report = $this->analyzer->analyze($file, $data['document_type'], $data['document_number']);
-        $duplicate = $this->matcher->findDuplicate($data);
+        $selectedPerson = isset($data['person_id']) ? Person::find($data['person_id']) : null;
+
+        if ($selectedPerson) {
+            // La persona ya se eligió en el buscador: no hace falta adivinar
+            // si es un duplicado, ya sabemos exactamente a quién pertenece.
+            $personData = [
+                'full_name' => $selectedPerson->full_name,
+                'curp' => $selectedPerson->curp,
+                'birth_date' => $selectedPerson->birth_date?->format('Y-m-d'),
+            ];
+            $duplicate = new PersonMatch(
+                $selectedPerson,
+                'selected',
+                "Este documento se agregará a la persona seleccionada: \"{$selectedPerson->full_name}\".",
+            );
+        } else {
+            $personData = [
+                'full_name' => $data['full_name'],
+                'curp' => $data['curp'] ?? null,
+                'birth_date' => $data['birth_date'] ?? null,
+            ];
+            $duplicate = $this->matcher->findDuplicate($data);
+        }
+
+        $report = $this->analyzer->analyze($file, $data['document_type'], $data['document_number'], $duplicate?->person->id);
 
         $token = (string) Str::uuid();
         $extension = $file->getClientOriginalExtension() ?: 'bin';
@@ -99,9 +170,7 @@ class DocumentController extends Controller
 
         $request->session()->put(self::SESSION_PREFIX.$token, [
             'form' => [
-                'full_name' => $data['full_name'],
-                'curp' => $data['curp'] ?? null,
-                'birth_date' => $data['birth_date'] ?? null,
+                ...$personData,
                 'document_type' => $data['document_type'],
                 'document_number' => $data['document_number'],
             ],
@@ -165,8 +234,12 @@ class DocumentController extends Controller
 
         $riskLevel = RiskLevel::from($pending['report']['level']);
 
-        if ($riskLevel->requiresManualConfirmation() && ! $request->boolean('confirm_high_risk')) {
-            return back()->with('error', 'Debes confirmar que revisaste el documento antes de continuar, dado su nivel de riesgo alto.');
+        if ($riskLevel->blocksUpload()) {
+            Storage::disk(self::TEMP_DISK)->delete($pending['file']['temp_path']);
+            $request->session()->forget($sessionKey);
+
+            return redirect()->route('documents.create')
+                ->with('error', 'Este documento tiene un nivel de riesgo alto y no se puede guardar. Sube un documento distinto para continuar.');
         }
 
         if ($pending['duplicate'] && (int) $request->input('attach_to_person_id') !== $pending['duplicate']['person_id']) {
@@ -202,7 +275,6 @@ class DocumentController extends Controller
             'risk_score' => $pending['report']['score'],
             'risk_level' => $riskLevel->value,
             'risk_reasons' => $pending['report']['reasons'],
-            'authenticity_confirmed_by_staff' => $riskLevel->requiresManualConfirmation(),
         ]);
 
         $request->session()->forget($sessionKey);
@@ -225,6 +297,35 @@ class DocumentController extends Controller
         }
 
         return redirect()->route('documents.create');
+    }
+
+    /**
+     * @return array<string, int> conteo de documentos por nivel de riesgo
+     *                            (bajo/medio/alto), incluidos los niveles
+     *                            en cero. Requiere $person->documents
+     *                            precargada (evita N+1).
+     */
+    private function riskCounts(Person $person): array
+    {
+        $counts = $person->documents->countBy(fn (Document $document): string => $document->risk_level->value);
+
+        return collect(RiskLevel::cases())
+            ->mapWithKeys(fn (RiskLevel $level) => [$level->value => $counts->get($level->value, 0)])
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, array{level: RiskLevel, count: int}> solo los
+     *                                                              niveles con al menos un documento, listos para pintar en la vista.
+     */
+    private function riskBadges(Person $person): Collection
+    {
+        $counts = $this->riskCounts($person);
+
+        return collect(RiskLevel::cases())
+            ->map(fn (RiskLevel $level): array => ['level' => $level, 'count' => $counts[$level->value]])
+            ->filter(fn (array $badge): bool => $badge['count'] > 0)
+            ->values();
     }
 
     private function moveToPublicStorage(string $tempPath, int $personId): string

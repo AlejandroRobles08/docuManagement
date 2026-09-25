@@ -52,9 +52,30 @@
                         </p>
                     @endif
 
-                    <a href="{{ $document->url() }}" target="_blank" rel="noopener" class="uk-button uk-button-default uk-button-small uk-margin-small-top">
+                    <a href="#document-preview-{{ $document->id }}" uk-toggle class="uk-button uk-button-default uk-button-small uk-margin-small-top">
                         <span uk-icon="icon: file-pdf; ratio: 0.8"></span> Ver archivo original
                     </a>
+
+                    <div id="document-preview-{{ $document->id }}" class="uk-modal-container" uk-modal>
+                        <div class="uk-modal-dialog uk-modal-body document-preview-dialog">
+                            <button class="uk-modal-close-default" type="button" uk-close></button>
+                            <h3 class="uk-modal-title">
+                                {{ $document->document_type->label() }} &middot; N.º {{ $document->document_number }}
+                            </h3>
+
+                            @if ($document->mime_type === 'application/pdf')
+                                <iframe src="{{ $document->url() }}" class="document-preview-frame" title="Vista previa de {{ $document->original_filename }}"></iframe>
+                            @else
+                                <img src="{{ $document->url() }}" alt="Vista previa de {{ $document->original_filename }}" class="document-preview-image">
+                            @endif
+
+                            <p class="uk-text-right uk-margin-small-top uk-margin-remove-bottom">
+                                <a href="{{ $document->url() }}" target="_blank" rel="noopener" class="uk-link-muted">
+                                    Abrir en una pestaña nueva
+                                </a>
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         @endforeach

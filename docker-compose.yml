@@ -1,0 +1,76 @@
+services:
+    app:
+        build:
+            context: .
+            dockerfile: docker/app/Dockerfile
+        container_name: docu_app
+        restart: unless-stopped
+        ports:
+            - "80:83"
+        volumes:
+            - .:/var/www/html
+        env_file:
+            - .env
+        environment:
+            DB_HOST: mysql
+            DB_PORT: 3306
+            APP_URL: http://localhost
+        depends_on:
+            mysql:
+                condition: service_healthy
+        networks:
+            - docu-network
+
+    node:
+        image: node:20-alpine
+        container_name: docu_node
+        working_dir: /var/www/html
+        volumes:
+            - .:/var/www/html
+        ports:
+            - "5174:5174"
+        command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+        networks:
+            - docu-network
+
+    mysql:
+        image: mysql:8.0
+        container_name: docu_mysql
+        restart: unless-stopped
+        command: --default-authentication-plugin=mysql_native_password
+        environment:
+            MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+            MYSQL_DATABASE: ${DB_DATABASE}
+        ports:
+            - "3307:3306"
+        volumes:
+            - docu-mysql-data:/var/lib/mysql
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+        networks:
+            - docu-network
+
+    phpmyadmin:
+        image: phpmyadmin:latest
+        container_name: docu_phpmyadmin
+        restart: unless-stopped
+        environment:
+            PMA_HOST: mysql
+            PMA_USER: root
+            PMA_PASSWORD: ""
+        ports:
+            - "8081:80"
+        depends_on:
+            - mysql
+        networks:
+            - docu-network
+
+networks:
+    docu-network:
+        driver: bridge
+
+volumes:
+    docu-mysql-data:

@@ -9,9 +9,9 @@ return [
     |
     | ForgeryAnalyzer combina varias heurísticas locales (ver app/Services/Forgery)
     | en una puntuación de 0 a 100. Estos umbrales deciden a qué nivel de riesgo
-    | (bajo / medio / alto) corresponde esa puntuación. Un riesgo "alto" obliga
-    | a que un miembro del staff confirme manualmente antes de guardar el
-    | documento (ver App\Enums\RiskLevel::requiresManualConfirmation()).
+    | (bajo / medio / alto) corresponde esa puntuación. Un riesgo "alto" impide
+    | guardar el documento por completo: debe cancelarse y sustituirse por un
+    | archivo distinto (ver App\Enums\RiskLevel::blocksUpload()).
     |
     | IMPORTANTE: estas heurísticas NO son una verificación forense ni legal de
     | autenticidad. Solo señalan indicios (metadatos de edición, archivos
@@ -19,7 +19,7 @@ return [
     |
     */
 
-    'medium_threshold' => (int) env('FORGERY_MEDIUM_THRESHOLD', 25),
+    'medium_threshold' => (int) env('FORGERY_MEDIUM_THRESHOLD', 50),
 
     'high_threshold' => (int) env('FORGERY_HIGH_THRESHOLD', 60),
 

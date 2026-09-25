@@ -3,10 +3,13 @@
 namespace App\Services\Forgery;
 
 use App\Enums\RiskLevel;
+use App\Services\Forgery\Checks\BlurDetectionCheck;
 use App\Services\Forgery\Checks\DuplicateFileHashCheck;
 use App\Services\Forgery\Checks\ErrorLevelAnalysisCheck;
 use App\Services\Forgery\Checks\ExifMetadataCheck;
 use App\Services\Forgery\Checks\FileIntegrityCheck;
+use App\Services\Forgery\Checks\ScratchMarkCheck;
+use App\Services\Forgery\Checks\WatermarkDetectionCheck;
 use App\Services\Forgery\Contracts\ForgeryCheck;
 use Illuminate\Http\UploadedFile;
 
@@ -32,10 +35,13 @@ class ForgeryAnalyzer
             new DuplicateFileHashCheck,
             new ExifMetadataCheck,
             new ErrorLevelAnalysisCheck,
+            new WatermarkDetectionCheck,
+            new BlurDetectionCheck,
+            new ScratchMarkCheck,
         ];
     }
 
-    public function analyze(UploadedFile $file, string $documentType, string $documentNumber): ForgeryReport
+    public function analyze(UploadedFile $file, string $documentType, string $documentNumber, ?int $personId = null): ForgeryReport
     {
         $fileHash = hash_file('sha256', $file->getRealPath());
 
@@ -43,6 +49,11 @@ class ForgeryAnalyzer
             'document_type' => $documentType,
             'document_number' => $documentNumber,
             'file_hash' => $fileHash,
+            // La persona a la que quedará asociado este documento si se
+            // confirma: la seleccionada explícitamente, o la que ya
+            // coincidió por CURP/nombre. Null si esta subida creará una
+            // persona nueva.
+            'person_id' => $personId,
         ];
 
         $score = 0;

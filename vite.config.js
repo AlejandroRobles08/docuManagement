@@ -8,6 +8,19 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+    server: {
+        // host 0.0.0.0 permite que Vite acepte conexiones desde fuera del
+        // contenedor Docker. laravel-vite-plugin v3 usa ese valor tal cual
+        // al escribir "public/hot", así que sin hmr.host el navegador
+        // intentaría pedir los assets a http://0.0.0.0:5174 (no enrutable).
+        // hmr.host fuerza que public/hot y el cliente HMR usen localhost.
+        host: '0.0.0.0',
+        port: 5174,
+        strictPort: true,
+        hmr: {
+            host: 'localhost',
+        },
+    },
     css: {
         preprocessorOptions: {
             scss: {

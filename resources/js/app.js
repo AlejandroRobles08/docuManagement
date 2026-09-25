@@ -8,3 +8,8 @@ UIkit.use(Icons);
 window.UIkit = UIkit;
 
 import './document-upload';
+// OCR en pausa a pedido: no se dispara el modal de escaneo al elegir un
+// archivo. El código sigue en document-ocr.js, solo no se carga.
+// import './document-ocr';
+import './document-number-hint';
+import './person-picker';

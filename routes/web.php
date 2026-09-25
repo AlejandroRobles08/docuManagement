@@ -12,6 +12,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('documentos')->name('documents.')->group(function () {
         Route::get('/', [DocumentController::class, 'index'])->name('index');
         Route::get('/nuevo', [DocumentController::class, 'create'])->name('create');
+        Route::get('/personas/buscar', [DocumentController::class, 'searchPersons'])->name('persons.search');
         Route::post('/analizar', [DocumentController::class, 'analyze'])->name('analyze');
         Route::get('/revisar/{token}', [DocumentController::class, 'review'])->name('review');
         Route::post('/revisar/{token}/confirmar', [DocumentController::class, 'confirm'])->name('confirm');

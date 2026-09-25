@@ -6,14 +6,20 @@ body {
     background-color: #f4f6f9;
 }
 
-// Layout de autenticación (login / registro): tarjeta centrada sobre fondo de marca.
+// Layout de autenticación (login / registro): tarjeta centrada sobre una foto
+// de fondo (documentos/papeleo), con un degradado de marca encima para que
+// el logo y la tarjeta sigan siendo legibles.
+// Foto: Wesley Tingey en Unsplash (https://unsplash.com/photos/snNHKZ-mGfE),
+// bajo la licencia de Unsplash (uso libre, sin necesidad de atribución).
 .auth-shell {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, $global-primary-background 0%, darken($global-primary-background, 20%) 100%);
     padding: 20px;
+    background:
+        linear-gradient(135deg, rgba($global-primary-background, 0.88) 0%, rgba(darken($global-primary-background, 20%), 0.92) 100%),
+        url('../images/auth-background.jpg') center / cover no-repeat;
 }
 
 .auth-card {
@@ -69,6 +75,62 @@ body {
         background: rgba($global-danger-background, 0.12);
         color: darken($global-danger-background, 5%);
     }
+}
+
+// Vista previa del documento original dentro del modal (PDF o imagen).
+.document-preview-dialog {
+    width: 90vw;
+    max-width: 1200px;
+}
+
+.document-preview-frame {
+    width: 100%;
+    height: 90vh;
+    border: 0;
+}
+
+.document-preview-image {
+    display: block;
+    max-width: 100%;
+    max-height: 75vh;
+    margin: 0 auto;
+}
+
+// Vista previa dentro del modal de escaneo OCR (ver documents/create.blade.php
+// y resources/js/document-ocr.js).
+.document-ocr-preview {
+    img,
+    iframe {
+        display: block;
+        width: 100%;
+        max-height: 60vh;
+        border: 1px solid $global-border;
+        border-radius: $global-border-radius;
+        object-fit: contain;
+        background: #fff;
+    }
+
+    iframe {
+        height: 60vh;
+    }
+}
+
+// Buscador de personas del formulario de subida (ver documents/create.blade.php).
+.person-picker {
+    position: relative;
+}
+
+.person-picker-results {
+    position: absolute;
+    z-index: 1020;
+    left: 0;
+    right: 0;
+    margin-top: 2px;
+    max-height: 260px;
+    overflow-y: auto;
+    background: $global-background;
+    border: 1px solid $global-border;
+    border-radius: $global-border-radius;
 }
 
 .risk-reasons {

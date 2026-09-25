@@ -20,7 +20,8 @@ class StoreDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'full_name' => ['required', 'string', 'max:255'],
+            'person_id' => ['nullable', 'integer', 'exists:people,id'],
+            'full_name' => ['required_without:person_id', 'nullable', 'string', 'max:255'],
             'curp' => ['nullable', 'string', 'size:18', 'regex:/^[A-Z0-9]{18}$/i'],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'document_type' => ['required', new Enum(DocumentType::class)],
@@ -53,6 +54,7 @@ class StoreDocumentRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'person_id' => 'persona',
             'full_name' => 'nombre completo',
             'curp' => 'CURP',
             'birth_date' => 'fecha de nacimiento',

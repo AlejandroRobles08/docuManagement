@@ -8,7 +8,7 @@ use Illuminate\Http\UploadedFile;
 interface ForgeryCheck
 {
     /**
-     * @param  array{document_type: string, document_number: string, file_hash: string}  $context
+     * @param  array{document_type: string, document_number: string, file_hash: string, person_id: int|null}  $context
      */
     public function evaluate(UploadedFile $file, array $context): ForgeryFinding;
 }

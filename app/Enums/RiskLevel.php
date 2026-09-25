@@ -39,9 +39,10 @@ enum RiskLevel: string
     }
 
     /**
-     * Si es true, el staff debe confirmar explícitamente antes de guardar el documento.
+     * Si es true, el documento no se puede guardar: debe cancelarse y
+     * sustituirse por un archivo distinto.
      */
-    public function requiresManualConfirmation(): bool
+    public function blocksUpload(): bool
     {
         return $this === self::Alto;
     }
